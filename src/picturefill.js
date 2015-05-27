@@ -34,6 +34,11 @@
 	// local object for method references and testing exposure
 	var pf = w.picturefill || {};
 
+	var lengthCache = {};
+	w.addEventListener( "resize", function() {
+		lengthCache = {};
+	}, false );
+
 	var regWDesc = /\s+\+?\d+(e\d+)?w/;
 
 	// namespace
@@ -102,34 +107,39 @@
 		 */
 		length = length.replace( "vw", "%" );
 
-		// Create a cached element for getting length value widths
-		if ( !pf.lengthEl ) {
-			pf.lengthEl = doc.createElement( "div" );
+		if (!lengthCache[length]) {
+			// Create a cached element for getting length value widths
+			if (!pf.lengthEl) {
+				pf.lengthEl = doc.createElement("div");
 
-			// Positioning styles help prevent padding/margin/width on `html` or `body` from throwing calculations off.
-			pf.lengthEl.style.cssText = "border:0;display:block;font-size:1em;left:0;margin:0;padding:0;position:absolute;visibility:hidden";
+				// Positioning styles help prevent padding/margin/width on `html` or `body` from throwing calculations off.
+				pf.lengthEl.style.cssText = "border:0;display:block;font-size:1em;left:0;margin:0;padding:0;position:absolute;visibility:hidden";
 
-			// Add a class, so that everyone knows where this element comes from
-			pf.lengthEl.className = "helper-from-picturefill-js";
+				// Add a class, so that everyone knows where this element comes from
+				pf.lengthEl.className = "helper-from-picturefill-js";
+			}
+
+			pf.lengthEl.style.width = "0px";
+
+			try {
+				pf.lengthEl.style.width = length;
+			} catch (e) {
+			}
+
+			doc.body.appendChild(pf.lengthEl);
+
+			cssValue = pf.lengthEl.offsetWidth;
+
+			if (cssValue <= 0) {
+				cssValue = false;
+			}
+
+			doc.body.removeChild(pf.lengthEl);
+
+			return lengthCache[length] = cssValue;
 		}
 
-		pf.lengthEl.style.width = "0px";
-
-        try {
-		    pf.lengthEl.style.width = length;
-        } catch ( e ) {}
-
-		doc.body.appendChild(pf.lengthEl);
-
-		cssValue = pf.lengthEl.offsetWidth;
-
-		if ( cssValue <= 0 ) {
-			cssValue = false;
-		}
-
-		doc.body.removeChild( pf.lengthEl );
-
-		return cssValue;
+		return lengthCache[length];
 	};
 
     pf.detectTypeSupport = function( type, typeUri ) {
